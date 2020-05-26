@@ -1,0 +1,72 @@
+trainer:
+  init-learning-rate           : 0.001
+  mini-batch-size-in-insts     : 1
+  reporting-frequency-in-insts : 100
+
+main-vars:
+  rules-to-use-for-valid : MCFG # CFG, MCFG, wnMCFG, wnMCFGnonRare
+  max-disc-el-size       : 1000
+  max-gap-size           : 1000
+
+  global-model           : true
+  explicit-binarization  : true
+
+  dropout                : &dropout                    0.5
+
+  word-embedder-type     : &word-embedder-type         raw
+  word-rep-dim           : &word-rep-dim               132
+
+  tag-rep-dim            : &tag-rep-dim                128
+
+  pair-seq-type          : &pair-seq-type              mlp
+  pair-seq-dim           : &pair-seq-dim               200
+
+  smoother-dim           : &smoother-dim               200
+  smoother-layers        : &smoother-layers              2
+  smoother-with-residual : &smoother-with-residual   false
+
+ff-left:
+  activations: ["tanh", "linear"]
+  sizes:  [*smoother-dim, *smoother-dim, *pair-seq-dim]
+
+ff-right:
+  activations: ["tanh", "linear"]
+  sizes:  [*smoother-dim, *smoother-dim, *pair-seq-dim]
+
+seq-embedder:
+  word-seq-emb:
+    seq-emb-type     : combine
+    combining-method : concat
+    subembs:
+      -
+       seq-emb-type    : *word-embedder-type # glove, elmo, bert ...
+       w2i             : RESOURCE_W2I   # matters only for standard embedder
+       compression-type: weighted-sum   # matters only for Transformer and new ELMo implementation
+       out-dim         : 32  # representation after compression
+       dropout         : *dropout   # self-descriptive
+       normalize       : true # to prevent vectors with big norms coming out of pretrained embedders
+      -
+        seq-emb-type    : char # glove, elmo, bert ...
+        w2i             : RESOURCE_W2I   # matters only for standard embedder
+        compression-type: weighted-sum   # matters only for Transformer and new ELMo implementation
+        out-dim         : 100  # representation after compression
+        dropout         : *dropout   # self-descriptive
+        normalize       : true # to prevent vectors with big norms coming out of pretrained embedders
+  tag-seq-emb:
+    seq-emb-type    : raw # raw, glove, elmo, bert ...
+    w2i             : RESOURCE_T2I   # matters only for standard embedder
+    out-dim         : *tag-rep-dim  # representation after compression
+    dropout         : *dropout   # self-descriptive
+  smoother:
+    bi-directional  : true
+    rnn-type        : lstm
+    in-dim          : [*word-rep-dim, *tag-rep-dim]
+    out-dim         : *smoother-dim
+    layers          : *smoother-layers
+    with-layer-norm : false
+    with-residual   : *smoother-with-residual
+
+pair-seq-labels:
+  type   : *pair-seq-type
+  dim    : *pair-seq-dim
+  labels : RESOURCE_NONTERMS_NUMBER

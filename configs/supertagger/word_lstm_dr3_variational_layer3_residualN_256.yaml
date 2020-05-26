@@ -1,0 +1,50 @@
+trainer:
+  init-learning-rate           : 0.001
+  mini-batch-size-in-insts     :    32
+  reporting-frequency-in-insts :   100
+
+main-vars:
+
+  all-dropout              : &all-dropout                       0.3
+  in-word-embedder-type    : &in-word-embedder-type             raw
+  in-word-rep-dim          : &in-word-rep-dim                   100
+  smoother-dim             : &smoother-dim                      256
+  smoother-layers          : &smoother-layers                     3
+  smoother-dropout-type    : &smoother-dropout-type     variational
+  smoother-with-residual   : &smoother-with-residual          false
+
+  # these stay the same troughout POS tagging (but not supertagging necessarily)
+  out-tag-min-count      :                     10
+  out-tag-max-voc        :                  10000
+  in-tag-rep-dim         : &in-tag-rep-dim      0
+
+
+MLP:
+  activations: ["tanh", "logsoftmax"]
+  sizes:  [*smoother-dim, 100, RESOURCE_OUT_TAGS_SIZE]
+
+seq-embedder:
+  word-seq-emb:
+    seq-emb-type    : *in-word-embedder-type # glove, elmo, bert ...
+    w2i             : RESOURCE_IN_W2I   # matters only for standard embedder
+    compression-type: weighted-sum   # matters only for Transformer and new ELMo implementation
+    out-dim         : *in-word-rep-dim  # representation after compression
+    dropout         : *all-dropout   # self-descriptive
+    normalize       : true # to prevent vectors with big norms coming out of pretrained embedders
+  tag-seq-emb:
+    seq-emb-type    : raw # raw, glove, elmo, bert ...
+    w2i             : RESOURCE_IN_T2I   # matters only for standard embedder
+    out-dim         : *in-tag-rep-dim  # representation after compression
+    dropout         : *all-dropout   # self-descriptive
+  smoother:
+    bi-directional  : true
+    rnn-type        : lstm # lstm-vanilla-saxe, transformer, lstm
+    heads           : 10 # in case rnn-type==transformer
+    in-dim          : [*in-word-rep-dim, *in-tag-rep-dim]
+    out-dim         : *smoother-dim
+    layer-norm      : false
+    layers          : *smoother-layers
+    dropout         : *all-dropout
+    dropout-type    : *smoother-dropout-type
+    with-layer-norm : false
+    with-residual   : *smoother-with-residual
