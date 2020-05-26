@@ -38,7 +38,9 @@ To run the parser execute the following command:
     --output-file $PRED_TREES
 
 For $MODEL_DIR you can uncompress one of the models in the `models` directory.
-$TEST_TAGS also have to be provided by you (the parser doesn't do the tagging step.
+
+$TEST_TAGS also have to be provided by the user (the parser doesn't do the tagging step).
+
 $PRED_TREES will be outputed in the export format.
 
 
